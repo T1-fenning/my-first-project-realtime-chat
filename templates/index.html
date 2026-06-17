@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VibeChat 協作空間</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <style>
+        :root {
+            --primary-bg: #f4f7f6;
+            --chat-bg: #ffffff;
+            --accent-color: #2e3440;
+            --message-bg: #e5e9f0;
+            --my-message-bg: #88c0d0;
+        }
+        body {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            background-color: var(--primary-bg);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        #chat-container {
+            width: 100%;
+            max-width: 600px;
+            background: var(--chat-bg);
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 80vh;
+        }
+        #header {
+            background: var(--accent-color);
+            color: white;
+            padding: 15px 20px;
+            text-align: center;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+        #messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .msg-box {
+            padding: 10px 15px;
+            border-radius: 20px;
+            max-width: 70%;
+            line-height: 1.4;
+        }
+        .msg-others {
+            background: var(--message-bg);
+            align-self: flex-start;
+            border-bottom-left-radius: 0;
+        }
+        .msg-mine {
+            background: var(--my-message-bg);
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 0;
+        }
+        .status-msg {
+            align-self: center;
+            font-size: 0.8em;
+            color: #888;
+        }
+        #input-area {
+            display: flex;
+            padding: 15px;
+            background: #fafafa;
+            border-top: 1px solid #eee;
+        }
+        #message-input {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 25px;
+            outline: none;
+            transition: 0.3s;
+        }
+        #message-input:focus { border-color: var(--accent-color); }
+        #send-btn {
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 0 20px;
+            margin-left: 10px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<div id="chat-container">
+    <div id="header">房間名稱：<span id="room-name-display">載入中...</span></div>
+    <div id="messages"></div>
+    <div id="input-area">
+        <input type="text" id="message-input" placeholder="輸入訊息..." autocomplete="off">
+        <button id="send-btn">發送</button>
+    </div>
+</div>
+
+<script>
+    const socket = io();
+    let myUsername = prompt("請輸入您的使用者名稱：") || "匿名用戶";
+    let myRoom = prompt("請輸入欲加入的房間名稱（例如：room1）：") || "大廳";
+
+    document.getElementById('room-name-display').innerText = myRoom;
+    const messagesDiv = document.getElementById('messages');
+    const msgInput = document.getElementById('message-input');
+    const sendBtn = document.getElementById('send-btn');
+
+    // 1. 連線成功後，觸發加入房間事件
+    socket.on('connect', () => {
+        socket.emit('join', { username: myUsername, room: myRoom });
+    });
+
+    // 2. 接收歷史訊息
+    socket.on('load_history', (history) => {
+        history.forEach(data => appendMessage(data.sender, data.content));
+    });
+
+    // 3. 接收系統狀態廣播
+    socket.on('status_update', (data) => {
+        const div = document.createElement('div');
+        div.className = 'status-msg';
+        div.textContent = data.msg;
+        messagesDiv.appendChild(div);
+        scrollToBottom();
+    });
+
+    // 4. 接收即時訊息
+    socket.on('receive_message', (data) => {
+        appendMessage(data.sender, data.content);
+    });
+
+    // 5. 發送訊息邏輯
+    function sendMessage() {
+        const content = msgInput.value.trim();
+        if (content) {
+            socket.emit('send_message', { username: myUsername, room: myRoom, message: content });
+            msgInput.value = '';
+        }
+    }
+
+    sendBtn.addEventListener('click', sendMessage);
+    msgInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') sendMessage();
+    });
+
+    // 輔助函數：渲染訊息對話框
+    function appendMessage(sender, content) {
+        const div = document.createElement('div');
+        div.className = 'msg-box ' + (sender === myUsername ? 'msg-mine' : 'msg-others');
+        div.textContent = (sender === myUsername ? '' : sender + ': ') + content;
+        messagesDiv.appendChild(div);
+        scrollToBottom();
+    }
+
+    function scrollToBottom() {
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+</script>
+
+</body>
+</html>
