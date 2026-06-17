@@ -1,5 +1,1 @@
-<<<<<<< HEAD
 pip freeze > requirements.txt
-=======
-pip freeze > requirements.txt
->>>>>>> 90c90be3df8af9eb7aa5213900e8e0e49477c714
