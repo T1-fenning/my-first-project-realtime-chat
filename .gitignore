@@ -1,0 +1,15 @@
+# 忽略 Python 編譯暫存檔
+__pycache__/
+*.pyc
+
+# 忽略本地虛擬環境資料夾
+.venv/
+venv/
+env/
+
+# 忽略本地產生的 SQLite 資料庫檔案
+*.db
+chat.db
+
+# 忽略包含私密金鑰的實際環境變數檔案
+.env
